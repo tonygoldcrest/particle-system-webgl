@@ -54,6 +54,10 @@ function setupGl() {
 function main() {
   setupGl();
 
+  const stats = new Stats();
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+
   const particles = [];
   let isMouseDown = false;
   let mouseDownPosition;
@@ -68,7 +72,8 @@ function main() {
 
     const particle = new Particle(new Vector2(x, y).add(center));
     particles.push(particle);
-    particle.addForce(Vector2.subtract(particle.position, center).multiply(0.05));
+    const force = Vector2.subtract(particle.position, center).multiply(0.05);
+    particle.addForce(force.x, force.y);
   }
 
   let canvasWidth = gl.canvas.width;
@@ -95,6 +100,8 @@ function main() {
     gl.clearColor(0.18, 0.21, 0.25, 1.0);
 
   function animate() {
+    stats.begin();
+
     let deltaTime = (Date.now() - startTime) / 1000;
 
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -134,15 +141,12 @@ function main() {
         }
       }
 
-      // point.addForce(new Vector2(1, 1).multiply(0.01));
       if (isMouseDown) {
         const length = Math.sqrt(Math.pow(mouseDownPosition.x - particle.position.x, 2) + Math.pow(mouseDownPosition.y - particle.position.y, 2));
 
         particle.addForce(
-          new Vector2(
-            deltaTime * 100 * (1 / length) * (mouseDownPosition.x - particle.position.x),
-            deltaTime * 100 * (1 / length) * (mouseDownPosition.y - particle.position.y)
-          )
+          deltaTime * 100 * (1 / length) * (mouseDownPosition.x - particle.position.x),
+          deltaTime * 100 * (1 / length) * (mouseDownPosition.y - particle.position.y)
         );
       }
 
@@ -156,6 +160,7 @@ function main() {
 
     startTime = Date.now();
 
+    stats.end();
     requestAnimationFrame(animate);
   }
 }

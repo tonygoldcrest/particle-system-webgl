@@ -60,8 +60,9 @@ export class Particle {
     this.friction = 1.001;
   }
 
-  addForce(force) {
-    this.velocity.add(force);
+  addForce(x, y) {
+    this.velocity.x += x;
+    this.velocity.y += y;
   }
 
   move() {
