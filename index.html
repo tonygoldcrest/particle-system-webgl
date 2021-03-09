@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    #canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+
+  <script src="https://webgl2fundamentals.org/webgl/resources/webgl-utils.js"></script>
+  <script src="./perlin.js"></script>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <script id="vertex" type="x-shader/x-vertex">
+    #version 300 es
+
+    in vec4 a_position;
+    in float a_opacity;
+    uniform float point_size;
+    out vec4 v_fragColor;
+
+    void main() {
+      gl_Position = a_position;
+      gl_PointSize = point_size;
+
+      v_fragColor = vec4(0.93, 0.94, 0.95, a_opacity);
+    }
+  </script>
+
+  <script id="fragment" type="x-shader/x-fragment">
+    #version 300 es
+
+    precision highp float;
+
+    out vec4 outColor;
+
+    in vec4 v_fragColor;
+
+    uniform vec4 u_color;
+
+    void main() {
+      outColor = v_fragColor;
+    }
+  </script>
+
+  <script src="./src/index.js" type="module"></script>
+</body>
+</html>
