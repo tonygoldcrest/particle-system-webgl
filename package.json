@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "http-server -o"
+    "start": "light-server -s ."
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,10 @@
   },
   "homepage": "https://github.com/peancored/particles-webgl#readme",
   "devDependencies": {
-    "http-server": "^0.12.3"
+    "http-server": "^0.12.3",
+    "light-server": "^2.9.1"
+  },
+  "dependencies": {
+    "stats.js": "^0.17.0"
   }
 }

@@ -60,27 +60,21 @@ function main() {
 
   const particles = [];
   let isMouseDown = false;
-  let mouseDownPosition;
+  let mouseDownPosition = new Vector2(0, 0);
   let startTime = 0;
   const center = new Vector2(gl.canvas.width / 2, gl.canvas.height / 2);
 
-  for (let i = 0; i < particlesNum; i++) {
-    let r = Math.random() * 200;
-    let phi = Math.random() * 2 * Math.PI;
-    let x = r * Math.sin(phi);
-    let y = r * Math.cos(phi);
-
-    const particle = new Particle(new Vector2(x, y).add(center));
-    particles.push(particle);
-    const force = Vector2.subtract(particle.position, center).multiply(0.05);
-    particle.addForce(force.x, force.y);
-  }
+  Module.ccall(
+    'createParticles',// name of C function
+    null,// return type
+    ['number', 'number', 'number'],// argument types
+    [particlesNum, gl.canvas.width / 2, gl.canvas.height / 2]// arguments
+  );
 
   let canvasWidth = gl.canvas.width;
   let canvasHeight = gl.canvas.height;
 
-  let particlesCoordinates = new Float32Array(3 * particles.length * (trailLength + 1));
-
+  let particlesCoordinates = new Float32Array(3 * particlesNum * (trailLength + 1));
 
   requestAnimationFrame(animate);
 
@@ -106,53 +100,60 @@ function main() {
 
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    for (let i = 0; i < particles.length; i++) {
-      let particle = particles[i];
-      const normX = -1.0 + 2.0 * particle.position.x / canvasWidth;
-      const normY = -1.0 + 2.0 * particle.position.y / canvasHeight;
+    // for (let i = 0; i < particles.length; i++) {
+      // let particle = particles[i];
+      // const normX = -1.0 + 2.0 * particle.position.x / canvasWidth;
+      // const normY = -1.0 + 2.0 * particle.position.y / canvasHeight;
 
-      particlesCoordinates[(3 + 3*trailLength)*i] = normX;
-      particlesCoordinates[(3 + 3*trailLength)*i + 1] = normY;
-      particlesCoordinates[(3 + 3*trailLength)*i + 2] = 1.0 / opacityReductionNumber;
+      // particlesCoordinates[(3 + 3*trailLength)*i] = normX;
+      // particlesCoordinates[(3 + 3*trailLength)*i + 1] = normY;
+      // particlesCoordinates[(3 + 3*trailLength)*i + 2] = 1.0 / opacityReductionNumber;
 
-      for (let j = 0; j < particle.prevPoisitons.length; j++) {
-        if (j % 3 == 2) {
-          particlesCoordinates[(3 + 3 * trailLength) * i + 3 + j] = j / (opacityReductionNumber * particle.prevPoisitons.length);
-        } else {
-          particlesCoordinates[(3 + 3 * trailLength) * i + 3 + j] = particle.prevPoisitons[j];
-        }
-      }
+      // for (let j = 0; j < particle.prevPoisitons.length; j++) {
+        // if (j % 3 == 2) {
+          // particlesCoordinates[(3 + 3 * trailLength) * i + 3 + j] = j / (opacityReductionNumber * particle.prevPoisitons.length);
+        // } else {
+          // particlesCoordinates[(3 + 3 * trailLength) * i + 3 + j] = particle.prevPoisitons[j];
+        // }
+      // }
 
-      if (particle.position.x < 0 || particle.position.x > canvasWidth) {
-        particle.velocity.x = -particle.velocity.x;
-      }
+      // if (particle.position.x < 0 || particle.position.x > canvasWidth) {
+        // particle.velocity.x = -particle.velocity.x;
+      // }
 
-      if (particle.position.y < 0 || particle.position.y > canvasHeight) {
-        particle.velocity.y = -particle.velocity.y;
-      }
+      // if (particle.position.y < 0 || particle.position.y > canvasHeight) {
+        // particle.velocity.y = -particle.velocity.y;
+      // }
 
-      if (trailLength) {
-        particle.prevPoisitons.push(normX);
-        particle.prevPoisitons.push(normY);
-        particle.prevPoisitons.push(0.1);
+      // if (trailLength) {
+        // particle.prevPoisitons.push(normX);
+        // particle.prevPoisitons.push(normY);
+        // particle.prevPoisitons.push(0.1);
 
-        if (particle.prevPoisitons.length > trailLength * 3) {
-          particle.prevPoisitons.splice(0, 3);
-        }
-      }
+        // if (particle.prevPoisitons.length > trailLength * 3) {
+          // particle.prevPoisitons.splice(0, 3);
+        // }
+      // }
 
-      if (isMouseDown) {
-        const length = Math.sqrt(Math.pow(mouseDownPosition.x - particle.position.x, 2) + Math.pow(mouseDownPosition.y - particle.position.y, 2));
+      // if (isMouseDown) {
+        // const length = Math.sqrt(Math.pow(mouseDownPosition.x - particle.position.x, 2) + Math.pow(mouseDownPosition.y - particle.position.y, 2));
 
-        particle.addForce(
-          deltaTime * 100 * (1 / length) * (mouseDownPosition.x - particle.position.x),
-          deltaTime * 100 * (1 / length) * (mouseDownPosition.y - particle.position.y)
-        );
-      }
+        // particle.addForce(
+          // deltaTime * 100 * (1 / length) * (mouseDownPosition.x - particle.position.x),
+          // deltaTime * 100 * (1 / length) * (mouseDownPosition.y - particle.position.y)
+        // );
+      // }
 
-      particle.move();
-    };
+      // particle.move();
+    // };
 
+    ccallArrays(
+      'calcCoordinates',// name of C function
+      'array',// return type
+      ['number', 'number', 'number', 'number', 'number', 'number', 'number'],// argument types
+      [canvasWidth, canvasHeight, opacityReductionNumber, isMouseDown ? 1 : 0, mouseDownPosition.x, mouseDownPosition.y, deltaTime],// arguments,
+      { heapOut: "HEAPF32", returnArraySize: particlesNum*3, resultArray: particlesCoordinates }
+    );
 
     gl.bufferData(gl.ARRAY_BUFFER, particlesCoordinates, gl.DYNAMIC_DRAW);
 
