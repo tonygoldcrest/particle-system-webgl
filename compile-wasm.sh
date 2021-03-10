@@ -1,0 +1,4 @@
+emcc -o src/wasm.js src/index.cpp -s WASM=1 \
+  -s NO_EXIT_RUNTIME=0 -O3 -s "EXTRA_EXPORTED_RUNTIME_METHODS=['ccall']" \
+  -s INITIAL_MEMORY=100mb -s DISABLE_EXCEPTION_CATCHING=1 \
+  -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=2

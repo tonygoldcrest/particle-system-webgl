@@ -18,13 +18,12 @@
 
   <script src="src/wasm.js"></script>
   <script src="wasm-arrays.min.js"></script>
-  <script src="https://webgl2fundamentals.org/webgl/resources/webgl-utils.js"></script>
   <script src="./stats.min.js"></script>
 </head>
 <body>
   <canvas id="canvas"></canvas>
 
-  <script id="vertex" type="x-shader/x-vertex">
+  <script id="vertex-particle" type="x-shader/x-vertex">
     #version 300 es
 
     in vec4 a_position;
@@ -40,7 +39,7 @@
     }
   </script>
 
-  <script id="fragment" type="x-shader/x-fragment">
+  <script id="fragment-particle" type="x-shader/x-fragment">
     #version 300 es
 
     precision highp float;
@@ -56,6 +55,27 @@
     }
   </script>
 
+  <script id="vertex-triangle" type="x-shader/x-vertex">
+    #version 300 es
+
+    in vec4 a_position;
+
+    void main() {
+      gl_Position = a_position;
+    }
+  </script>
+
+  <script id="fragment-triangle" type="x-shader/x-fragment">
+    #version 300 es
+
+    precision highp float;
+
+    out vec4 outColor;
+
+    void main() {
+      outColor = vec4(0, 0, 0, 0.1);
+    }
+  </script>
   <script src="./src/index.js" type="module"></script>
 </body>
 </html>
