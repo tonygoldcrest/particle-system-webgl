@@ -9,8 +9,11 @@ let trianglePositionAttributeLocation;
 
 // particles 100k, length 10, size 2, opacity 7
 // particles 1m, length 0, size 1, opacity 5
-const particlesNum = 1000000;
-const pointSize = 1;
+const particlesNum = 500000;
+const bounceX = true;
+const bounceY = true;
+const squared = true;
+const pointSize = 2;
 const opacityReductionNumber = 2;
 const enableMotionBlur = true;
 
@@ -87,14 +90,18 @@ function main() {
   document.body.appendChild(stats.dom);
 
   let isMouseDown = false;
-  let mouseDownPosition = new Vector2(0, 0);
+  let isForceApplied = false;
+  let mouseDownPosition = new Vector2(gl.canvas.width / 2, gl.canvas.height / 2);
+  let forceCenter = new Vector2(0, 0);
+  let isPaused = false;
+
   let startTime = 0;
 
   Module.ccall(
     'createParticles',// name of C function
     null,// return type
-    ['number', 'number', 'number'],// argument types
-    [particlesNum, gl.canvas.width / 2, gl.canvas.height / 2]// arguments
+    ['number', 'number', 'number', 'number'],// argument types
+    [particlesNum, gl.canvas.width / 2, gl.canvas.height / 2, 0.01]// arguments
   );
 
   let canvasWidth = gl.canvas.width;
@@ -107,14 +114,68 @@ function main() {
   canvas.addEventListener('mousedown', function (evt) {
     isMouseDown = true;
     mouseDownPosition = new Vector2(gl.canvas.width * (evt.x / canvas.clientWidth), gl.canvas.height - gl.canvas.height * (evt.y / canvas.clientHeight));
+    forceCenter = mouseDownPosition;
+    isForceApplied = true;
   });
 
   canvas.addEventListener('mousemove', function (evt) {
     mouseDownPosition = new Vector2(gl.canvas.width * (evt.x / canvas.clientWidth), gl.canvas.height - gl.canvas.height * (evt.y / canvas.clientHeight));
+
+    if (isMouseDown) {
+      forceCenter = mouseDownPosition;
+    }
   });
 
   document.addEventListener('mouseup', function (evt) {
     isMouseDown = false;
+    isForceApplied = false;
+  });
+
+  document.addEventListener('keydown', function (evt) {
+    if (evt.key === 'c') {
+      forceCenter = new Vector2(gl.canvas.width / 2, gl.canvas.height / 2);
+      isForceApplied = true;
+    } else if (evt.key === 'X') {
+      Module.ccall(
+        'explosion',
+        null,
+        ['number', 'number', 'number'],
+        [mouseDownPosition.x, mouseDownPosition.y, 5]
+      );
+    } else if (evt.key === 'x') {
+      Module.ccall(
+        'explosion',
+        null,
+        ['number', 'number', 'number'],
+        [gl.canvas.width / 2, gl.canvas.height / 2, 5]
+      );
+    } else if (evt.key === 'r') {
+      Module.ccall(
+        'respawn',
+        null,
+        ['number', 'number', 'number'],
+        [gl.canvas.width / 2, gl.canvas.height / 2, 0.01]
+      );
+    } else if (evt.key === 's') {
+      Module.ccall(
+        'stop',
+        null,
+        null,
+        null
+      );
+    } else if (evt.key === 'p') {
+      isPaused = !isPaused;
+
+      if (!isPaused) {
+        requestAnimationFrame(animate);
+      }
+    }
+  });
+
+  document.addEventListener('keyup', function (evt) {
+    if (evt.key === 'c') {
+      isForceApplied = false;
+    }
   });
 
   gl.clearColor(0, 0, 0, 1.0);
@@ -153,8 +214,8 @@ function main() {
     ccallArrays(
       'calcCoordinates',// name of C function
       'array',// return type
-      ['number', 'number', 'number', 'number', 'number', 'number', 'number'],// argument types
-      [canvasWidth, canvasHeight, opacityReductionNumber, isMouseDown ? 1 : 0, mouseDownPosition.x, mouseDownPosition.y, deltaTime],// arguments,
+      ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number'],// argument types
+      [canvasWidth, canvasHeight, opacityReductionNumber, isForceApplied ? 1 : 0, forceCenter.x, forceCenter.y, deltaTime, bounceX ? 1 : 0, bounceY ? 1 : 0, squared ? 1 : 0],// arguments,
       { heapOut: "HEAPF32", returnArraySize: particlesNum*3, resultArray: particlesCoordinates }
     );
 
@@ -170,7 +231,10 @@ function main() {
     startTime = Date.now();
 
     stats.end();
-    requestAnimationFrame(animate);
+
+    if (!isPaused) {
+      requestAnimationFrame(animate);
+    }
   }
 }
 
