@@ -322,4 +322,6 @@ function main() {
   }
 }
 
-main();
+Module.onRuntimeInitialized = function() {
+  main();
+};

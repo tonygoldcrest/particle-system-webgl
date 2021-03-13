@@ -117,7 +117,8 @@
     }
   </style>
 
-  <script src="src/wasm.js"></script>
+  <script src="./src/index.js" type="module"></script>
+  <script async src="src/wasm.js"></script>
   <script src="wasm-arrays.min.js"></script>
   <script src="./stats.min.js"></script>
   <script src="./dat.gui.min.js"></script>
@@ -196,6 +197,5 @@
       outColor = vec4(0, 0, 0, 0.1);
     }
   </script>
-  <script src="./src/index.js" type="module"></script>
 </body>
 </html>
