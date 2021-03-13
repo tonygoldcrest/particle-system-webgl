@@ -2,7 +2,7 @@
 
 <img src="/images/video.gif" width="500"/>
 
-A particle system capable of creating beautiful patterns due to usage of symmetry.
+A particle system capable of creating beautiful patterns due to the usage of symmetry.
 
 [Demo](https://peancored.github.io/particle-system-webgl/)
 
