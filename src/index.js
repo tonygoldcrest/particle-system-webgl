@@ -10,7 +10,7 @@ let trianglePositionAttributeLocation;
 let pointSizeLocation, particleColorLocation, particleOpacityLocation;
 
 const config = {
-  particlesNum: 10000,
+  particlesNum: 50000,
   bounceX: true,
   bounceY: true,
   squared: true,
@@ -18,7 +18,7 @@ const config = {
   particleSize: 2,
   spawnRadius: 200,
   particleOpacity: 0.5,
-  'GPU Performance': 10000,
+  'GPU Performance': 50000,
   particleColor: '#ecf0f1'
 };
 
