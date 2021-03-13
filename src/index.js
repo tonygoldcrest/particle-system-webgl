@@ -1,24 +1,82 @@
-import { createShader, createProgram, resizeCanvasToDisplaySize } from './helpers.js';
+import { createShader, createProgram, resizeCanvasToDisplaySize, hexToRgb } from './helpers.js';
 import { Particle, Vector2 } from './classes.js';
 
+let particlesCoordinates;
 let particleProgram;
 let positionBuffer;
 let triangleProgram;
-let particlePositionAttributeLocation, particleOpacityAttributeLocation;
+let particlePositionAttributeLocation;
 let trianglePositionAttributeLocation;
+let pointSizeLocation, particleColorLocation, particleOpacityLocation;
 
-// particles 100k, length 10, size 2, opacity 7
-// particles 1m, length 0, size 1, opacity 5
-const particlesNum = 500000;
-const bounceX = true;
-const bounceY = true;
-const squared = true;
-const pointSize = 2;
-const opacityReductionNumber = 2;
-const enableMotionBlur = true;
+const config = {
+  particlesNum: 10000,
+  bounceX: true,
+  bounceY: true,
+  squared: true,
+  enableMotionBlur: true,
+  particleSize: 2,
+  spawnRadius: 200,
+  particleOpacity: 0.5,
+  'GPU Performance': 10000,
+  particleColor: '#ecf0f1'
+};
+
+let particlesNum = config.particlesNum;
 
 const canvas = document.querySelector('#canvas');
-const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: enableMotionBlur });
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: config.enableMotionBlur });
+
+function createParticles(number) {
+  Module.ccall(
+    'createParticles',
+    null,
+    ['number', 'number', 'number', 'number', 'number'],
+    [number, gl.canvas.width / 2, gl.canvas.height / 2, config.spawnRadius, 0.01]
+  );
+
+  particlesCoordinates = new Float32Array(2 * number);
+  particlesNum = number;
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
+function setupDatGui() {
+  const gui = new dat.GUI();
+
+  gui.add(config, 'GPU Performance', {
+    UltraLow: 1000,
+    Low: 10000,
+    Medium: 50000,
+    High: 100000,
+    VeryHigh: 500000,
+    Ultra: 1000000,
+    Nightmare: 5000000
+  }).onFinishChange(newValue => {
+    config.particlesNum = newValue;
+
+    createParticles(newValue);
+  });
+  gui.add(config, 'particlesNum', 1, 1000000).step(1).onFinishChange((newValue) => {
+    createParticles(newValue);
+  }).listen();
+  gui.add(config, 'particleSize', 1, 100).step(1).onFinishChange((newValue) => {
+    gl.uniform1f(pointSizeLocation, newValue);
+  });
+  gui.add(config, 'enableMotionBlur');
+  gui.add(config, 'squared');
+  gui.add(config, 'bounceX');
+  gui.add(config, 'bounceY');
+
+  const colors = gui.addFolder('Colors');
+  gui.addColor(config, 'particleColor').onChange((newValue) => {
+    const particleColorRgb = hexToRgb(newValue);
+    gl.uniform3f(particleColorLocation, particleColorRgb.r, particleColorRgb.g, particleColorRgb.b);
+  });
+  gui.add(config, 'particleOpacity', 0, 1).step(0.01).onFinishChange((newValue) => {
+    gl.uniform1f(particleOpacityLocation, newValue);
+  }).listen();
+  colors.open();
+}
 
 function setupGl() {
   positionBuffer = gl.createBuffer();
@@ -46,21 +104,23 @@ function setupParticleProgram() {
 
   particleProgram = createProgram(gl, particleVertexShader, particleFragmentShader);
 
-  const pointSizeLocation = gl.getUniformLocation(particleProgram, "point_size");
+  pointSizeLocation = gl.getUniformLocation(particleProgram, "point_size");
+  particleOpacityLocation = gl.getUniformLocation(particleProgram, "u_opacity");
+  particleColorLocation = gl.getUniformLocation(particleProgram, "u_color");
 
   particlePositionAttributeLocation = gl.getAttribLocation(particleProgram, "a_position");
-  particleOpacityAttributeLocation = gl.getAttribLocation(particleProgram, "a_opacity");
 
   gl.enableVertexAttribArray(particlePositionAttributeLocation);
-  gl.enableVertexAttribArray(particleOpacityAttributeLocation);
 
-  gl.vertexAttribPointer(particlePositionAttributeLocation, 2 /* size */, gl.FLOAT /* type */, false /* normalize */, 3 * Float32Array.BYTES_PER_ELEMENT /* stride */, 0 /* offset */);
-  gl.vertexAttribPointer(particleOpacityAttributeLocation, 1 /* size */, gl.FLOAT /* type */, false /* normalize */, 3 * Float32Array.BYTES_PER_ELEMENT /* stride */, 2 * Float32Array.BYTES_PER_ELEMENT /* offset */);
-
+  gl.vertexAttribPointer(particlePositionAttributeLocation, 2 /* size */, gl.FLOAT /* type */, false /* normalize */, 2 * Float32Array.BYTES_PER_ELEMENT /* stride */, 0 /* offset */);
 
   gl.useProgram(particleProgram);
 
-  gl.uniform1f(pointSizeLocation, pointSize);
+  gl.uniform1f(pointSizeLocation, config.particleSize);
+  gl.uniform1f(particleOpacityLocation, config.particleOpacity);
+
+  const particleColorRgb = hexToRgb(config.particleColor);
+  gl.uniform3f(particleColorLocation, particleColorRgb.r, particleColorRgb.g, particleColorRgb.b);
 }
 
 function setupTriangleProgram() {
@@ -78,10 +138,11 @@ function setupTriangleProgram() {
 }
 
 function main() {
+  setupDatGui();
   setupGl();
   setupParticleProgram();
 
-  if (enableMotionBlur) {
+  if (config.enableMotionBlur) {
     setupTriangleProgram();
   }
 
@@ -97,17 +158,10 @@ function main() {
 
   let startTime = 0;
 
-  Module.ccall(
-    'createParticles',// name of C function
-    null,// return type
-    ['number', 'number', 'number', 'number'],// argument types
-    [particlesNum, gl.canvas.width / 2, gl.canvas.height / 2, 0.01]// arguments
-  );
+  createParticles(particlesNum);
 
   let canvasWidth = gl.canvas.width;
   let canvasHeight = gl.canvas.height;
-
-  let particlesCoordinates = new Float32Array(3 * particlesNum);
 
   requestAnimationFrame(animate);
 
@@ -132,9 +186,15 @@ function main() {
   });
 
   document.addEventListener('keydown', function (evt) {
+    if (document.activeElement.getAttribute('type') === 'text') {
+      return;
+    }
+
     if (evt.key === 'c') {
-      forceCenter = new Vector2(gl.canvas.width / 2, gl.canvas.height / 2);
-      isForceApplied = true;
+      if (!isForceApplied) {
+        forceCenter = new Vector2(gl.canvas.width / 2, gl.canvas.height / 2);
+        isForceApplied = true;
+      }
     } else if (evt.key === 'X') {
       Module.ccall(
         'explosion',
@@ -153,8 +213,15 @@ function main() {
       Module.ccall(
         'respawn',
         null,
-        ['number', 'number', 'number'],
-        [gl.canvas.width / 2, gl.canvas.height / 2, 0.01]
+        ['number', 'number', 'number', 'number'],
+        [gl.canvas.width / 2, gl.canvas.height / 2, config.spawnRadius, 0.01]
+      );
+    } else if (evt.key === 'e') {
+      Module.ccall(
+        'spawnEmpty',
+        null,
+        ['number', 'number', 'number', 'number', 'number'],
+        [gl.canvas.width / 2, gl.canvas.height / 2, config.spawnRadius, 10, 5]
       );
     } else if (evt.key === 's') {
       Module.ccall(
@@ -169,10 +236,28 @@ function main() {
       if (!isPaused) {
         requestAnimationFrame(animate);
       }
+    } else if (evt.key === 'd') {
+      Module.ccall(
+        'deleteHeavyParticles',
+        null,
+        null,
+        null
+      );
+    } else if (parseInt(evt.key)) {
+      Module.ccall(
+        'createHeavyParticles',
+        null,
+        ['number', 'number', 'number'],
+        [parseInt(evt.key), gl.canvas.width, gl.canvas.height]
+      );
     }
   });
 
   document.addEventListener('keyup', function (evt) {
+    if (document.activeElement.getAttribute('type') === 'text') {
+      return;
+    }
+
     if (evt.key === 'c') {
       isForceApplied = false;
     }
@@ -196,7 +281,7 @@ function main() {
     stats.begin();
     let deltaTime = (Date.now() - startTime) / 1000;
 
-    if (enableMotionBlur) {
+    if (config.enableMotionBlur) {
       gl.useProgram(triangleProgram);
 
       gl.vertexAttribPointer(
@@ -212,16 +297,15 @@ function main() {
     }
 
     ccallArrays(
-      'calcCoordinates',// name of C function
-      'array',// return type
-      ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number'],// argument types
-      [canvasWidth, canvasHeight, opacityReductionNumber, isForceApplied ? 1 : 0, forceCenter.x, forceCenter.y, deltaTime, bounceX ? 1 : 0, bounceY ? 1 : 0, squared ? 1 : 0],// arguments,
-      { heapOut: "HEAPF32", returnArraySize: particlesNum*3, resultArray: particlesCoordinates }
+      'calcCoordinates',
+      'array',
+      ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number'],
+      [canvasWidth, canvasHeight, config.particleSize, isForceApplied ? 1 : 0, forceCenter.x, forceCenter.y, deltaTime, config.bounceX ? 1 : 0, config.bounceY ? 1 : 0, config.squared ? 1 : 0],
+      { heapOut: "HEAPF32", returnArraySize: particlesNum * 2, resultArray: particlesCoordinates }
     );
 
-    if (enableMotionBlur) {
-      gl.vertexAttribPointer(particlePositionAttributeLocation, 2 /* size */, gl.FLOAT /* type */, false /* normalize */, 3 * Float32Array.BYTES_PER_ELEMENT /* stride */, 0 /* offset */);
-      gl.vertexAttribPointer(particleOpacityAttributeLocation, 1 /* size */, gl.FLOAT /* type */, false /* normalize */, 3 * Float32Array.BYTES_PER_ELEMENT /* stride */, 2 * Float32Array.BYTES_PER_ELEMENT /* offset */);
+    if (config.enableMotionBlur) {
+      gl.vertexAttribPointer(particlePositionAttributeLocation, 2 /* size */, gl.FLOAT /* type */, false /* normalize */, 2 * Float32Array.BYTES_PER_ELEMENT /* stride */, 0 /* offset */);
     }
 
     gl.bufferData(gl.ARRAY_BUFFER, particlesCoordinates, gl.DYNAMIC_DRAW);

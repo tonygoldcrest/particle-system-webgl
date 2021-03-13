@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "light-server -s ."
+    "start": "light-server -s . -o"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
     "light-server": "^2.9.1"
   },
   "dependencies": {
+    "dat.gui": "^0.7.7",
     "stats.js": "^0.17.0"
   }
 }

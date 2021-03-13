@@ -14,11 +14,70 @@
       width: 100%;
       height: 100%;
     }
+
+    .cheatsheet {
+      position: absolute;
+      width: 30vw;
+      bottom: 0;
+      left: 0;
+      background: #1a1a1a;
+      color: #eee;
+      font-family: "Lucida Grande", sans-serif;
+      font-size: 13px;
+    }
+
+    .cheatsheet button {
+      background: #000;
+      color: #eee;
+      border: 0;
+      width: 100%;
+      box-shadow: none;
+      padding: 5px;
+      cursor: pointer;
+      transition: background .1s ease-in-out;
+      outline: none;
+    }
+
+    .cheatsheet button:hover {
+      background: #111;
+    }
+
+    .cheatsheet--hidden .cheatsheet__hotkeys-list {
+      display: none;
+    }
+
+    .cheatsheet__hotkeys-list {
+      display: grid;
+      grid-template-columns: auto auto;
+      align-items: center;
+      grid-column-gap: 5px;
+    }
+
+    .cheatsheet__hotkey {
+      font-size: 15px;
+      font-weight: bold;
+      margin: 5px;
+      border: 1px solid #eee;
+      padding: 3px;
+      text-align: center;
+      border-radius: 3px;
+    }
+
+    .cheatsheet__description {
+      padding: 5px 10px;
+    }
+
+    .cheatsheet__separator {
+      grid-column: 1 / 3;
+      border-bottom: 1px solid #2c2c2c;
+    }
   </style>
 
   <script src="src/wasm.js"></script>
   <script src="wasm-arrays.min.js"></script>
   <script src="./stats.min.js"></script>
+  <script src="./dat.gui.min.js"></script>
+  <script src="./src/cheatsheet.js"></script>
 </head>
 <body>
   <canvas id="canvas"></canvas>
@@ -27,15 +86,11 @@
     #version 300 es
 
     in vec4 a_position;
-    in float a_opacity;
     uniform float point_size;
-    out vec4 v_fragColor;
 
     void main() {
       gl_Position = a_position;
       gl_PointSize = point_size;
-
-      v_fragColor = vec4(0.93, 0.94, 0.95, a_opacity);
     }
   </script>
 
@@ -46,12 +101,11 @@
 
     out vec4 outColor;
 
-    in vec4 v_fragColor;
-
-    uniform vec4 u_color;
+    uniform vec3 u_color;
+    uniform float u_opacity;
 
     void main() {
-      outColor = v_fragColor;
+      outColor = vec4(u_color.xyz, u_opacity);
     }
   </script>
 
