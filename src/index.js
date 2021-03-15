@@ -312,6 +312,8 @@ function main() {
 
       gl.useProgram(particleProgram);
     } else {
+      const backgroundColorRgb = hexToRgb(config.backgroundColor);
+      gl.clearColor(backgroundColorRgb.r, backgroundColorRgb.g, backgroundColorRgb.b, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
