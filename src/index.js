@@ -63,7 +63,13 @@ function setupDatGui() {
   gui.add(config, 'particleSize', 1, 100).step(1).onFinishChange((newValue) => {
     gl.uniform1f(pointSizeLocation, newValue);
   });
-  gui.add(config, 'enableMotionBlur');
+  gui.add(config, 'enableMotionBlur').onChange((newValue) => {
+    if (newValue) {
+      const particleColorRgb = hexToRgb(config.particleColor);
+      gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+  });
   gui.add(config, 'squared');
   gui.add(config, 'bounceX');
   gui.add(config, 'bounceY');
