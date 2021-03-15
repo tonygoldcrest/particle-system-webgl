@@ -7,7 +7,7 @@ let positionBuffer;
 let triangleProgram;
 let particlePositionAttributeLocation;
 let trianglePositionAttributeLocation;
-let pointSizeLocation, particleColorLocation, particleOpacityLocation;
+let pointSizeLocation, particleColorLocation, particleOpacityLocation, backgroundColorLocation;
 
 const config = {
   particlesNum: 50000,
@@ -19,13 +19,14 @@ const config = {
   spawnRadius: 200,
   particleOpacity: 0.5,
   'GPU Performance': 50000,
-  particleColor: '#ecf0f1'
+  particleColor: '#1e272e',
+  backgroundColor: '#ecf0f1'
 };
 
 let particlesNum = config.particlesNum;
 
 const canvas = document.querySelector('#canvas');
-const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: config.enableMotionBlur });
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: config.enableMotionBlur, premultipliedAlpha: false });
 
 function createParticles(number) {
   Module.ccall(
@@ -70,7 +71,19 @@ function setupDatGui() {
   const colors = gui.addFolder('Colors');
   gui.addColor(config, 'particleColor').onChange((newValue) => {
     const particleColorRgb = hexToRgb(newValue);
+    gl.useProgram(particleProgram);
     gl.uniform3f(particleColorLocation, particleColorRgb.r, particleColorRgb.g, particleColorRgb.b);
+    gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  });
+  gui.addColor(config, 'backgroundColor').onChange((newValue) => {
+    const backgroundColorRgb = hexToRgb(newValue);
+    gl.useProgram(triangleProgram);
+    gl.uniform3f(backgroundColorLocation, backgroundColorRgb.r, backgroundColorRgb.g, backgroundColorRgb.b);
+
+    const particleColorRgb = hexToRgb(config.particleColor);
+    gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
   });
   gui.add(config, 'particleOpacity', 0, 1).step(0.01).onFinishChange((newValue) => {
     gl.uniform1f(particleOpacityLocation, newValue);
@@ -131,10 +144,15 @@ function setupTriangleProgram() {
   const triangleFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, triangleFragmentShaderSource);
 
   triangleProgram = createProgram(gl, triangleVertexShader, triangleFragmentShader);
+  gl.useProgram(triangleProgram);
 
+  backgroundColorLocation = gl.getUniformLocation(triangleProgram, "u_background");
   trianglePositionAttributeLocation = gl.getAttribLocation(triangleProgram, "a_position");
 
   gl.enableVertexAttribArray(trianglePositionAttributeLocation);
+
+  const backgroundColorRgb = hexToRgb(config.backgroundColor);
+  gl.uniform3f(backgroundColorLocation, backgroundColorRgb.r, backgroundColorRgb.g, backgroundColorRgb.b);
 }
 
 function main() {
@@ -263,7 +281,8 @@ function main() {
     }
   });
 
-  gl.clearColor(0, 0, 0, 1.0);
+  const particleColorRgb = hexToRgb(config.particleColor);
+  gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   const triangles = new Float32Array(
