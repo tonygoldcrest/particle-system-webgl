@@ -8,6 +8,7 @@ let triangleProgram;
 let particlePositionAttributeLocation;
 let trianglePositionAttributeLocation;
 let pointSizeLocation, particleColorLocation, particleOpacityLocation, backgroundColorLocation;
+let particlesVao, trianglesVao;
 
 const config = {
   particlesNum: 50000,
@@ -26,7 +27,9 @@ const config = {
 let particlesNum = config.particlesNum;
 
 const canvas = document.querySelector('#canvas');
-const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: config.enableMotionBlur, premultipliedAlpha: false });
+
+/** @type {WebGL2RenderingContext} */
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: config.enableMotionBlur });
 
 function createParticles(number) {
   Module.ccall(
@@ -39,6 +42,37 @@ function createParticles(number) {
   particlesCoordinates = new Float32Array(2 * number);
   particlesNum = number;
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
+const triangles = new Float32Array(
+  [
+    -1, -1,
+    -1, 1,
+    1, 1,
+    1, 1,
+    1, -1,
+    -1, -1
+  ]
+);
+
+function drawTriangles() {
+  gl.useProgram(triangleProgram);
+
+  gl.bindVertexArray(trianglesVao);
+
+  gl.bufferData(gl.ARRAY_BUFFER, triangles, gl.STATIC_DRAW);
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+function clearColors(color) {
+  const colorRgb = hexToRgb(color);
+  gl.clearColor(colorRgb.r, colorRgb.g, colorRgb.b, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  for (let i = 0; i < 40; i++) {
+    drawTriangles();
+  }
 }
 
 function setupDatGui() {
@@ -65,9 +99,7 @@ function setupDatGui() {
   });
   gui.add(config, 'enableMotionBlur').onChange((newValue) => {
     if (newValue) {
-      const particleColorRgb = hexToRgb(config.particleColor);
-      gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      clearColors(config.particleColor);
     }
   });
   gui.add(config, 'squared');
@@ -79,17 +111,14 @@ function setupDatGui() {
     const particleColorRgb = hexToRgb(newValue);
     gl.useProgram(particleProgram);
     gl.uniform3f(particleColorLocation, particleColorRgb.r, particleColorRgb.g, particleColorRgb.b);
-    gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    clearColors(newValue);
   });
   gui.addColor(config, 'backgroundColor').onChange((newValue) => {
     const backgroundColorRgb = hexToRgb(newValue);
     gl.useProgram(triangleProgram);
     gl.uniform3f(backgroundColorLocation, backgroundColorRgb.r, backgroundColorRgb.g, backgroundColorRgb.b);
 
-    const particleColorRgb = hexToRgb(config.particleColor);
-    gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    clearColors(config.particleColor);
   });
   gui.add(config, 'particleOpacity', 0, 1).step(0.01).onFinishChange((newValue) => {
     gl.uniform1f(particleOpacityLocation, newValue);
@@ -114,9 +143,9 @@ function setupGl() {
 
 }
 
-function setupParticleProgram() {
-  const particleVertexShaderSource = document.querySelector('#vertex-particle').textContent.trim();
-  const particleFragmentShaderSource = document.querySelector('#fragment-particle').textContent.trim();
+async function setupParticleProgram() {
+  const particleVertexShaderSource = await fetch('./src/shaders/particle.vertex.glsl').then(response => response.text());
+  const particleFragmentShaderSource = await fetch('./src/shaders/particle.fragment.glsl').then(response => response.text());
 
   const particleVertexShader = createShader(gl, gl.VERTEX_SHADER, particleVertexShaderSource);
   const particleFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, particleFragmentShaderSource);
@@ -126,6 +155,10 @@ function setupParticleProgram() {
   pointSizeLocation = gl.getUniformLocation(particleProgram, "point_size");
   particleOpacityLocation = gl.getUniformLocation(particleProgram, "u_opacity");
   particleColorLocation = gl.getUniformLocation(particleProgram, "u_color");
+
+  particlesVao = gl.createVertexArray();
+
+  gl.bindVertexArray(particlesVao);
 
   particlePositionAttributeLocation = gl.getAttribLocation(particleProgram, "a_position");
 
@@ -142,9 +175,9 @@ function setupParticleProgram() {
   gl.uniform3f(particleColorLocation, particleColorRgb.r, particleColorRgb.g, particleColorRgb.b);
 }
 
-function setupTriangleProgram() {
-  const triangleVertexShaderSource = document.querySelector('#vertex-triangle').textContent.trim();
-  const triangleFragmentShaderSource = document.querySelector('#fragment-triangle').textContent.trim();
+async function setupTriangleProgram() {
+  const triangleVertexShaderSource = await fetch('./src/shaders/triangle.vertex.glsl').then(response => response.text());
+  const triangleFragmentShaderSource = await fetch('./src/shaders/triangle.fragment.glsl').then(response => response.text());
 
   const triangleVertexShader = createShader(gl, gl.VERTEX_SHADER, triangleVertexShaderSource);
   const triangleFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, triangleFragmentShaderSource);
@@ -152,8 +185,14 @@ function setupTriangleProgram() {
   triangleProgram = createProgram(gl, triangleVertexShader, triangleFragmentShader);
   gl.useProgram(triangleProgram);
 
+  trianglesVao = gl.createVertexArray();
+  gl.bindVertexArray(trianglesVao);
+
   backgroundColorLocation = gl.getUniformLocation(triangleProgram, "u_background");
   trianglePositionAttributeLocation = gl.getAttribLocation(triangleProgram, "a_position");
+
+  gl.vertexAttribPointer(
+    trianglePositionAttributeLocation, 2, gl.FLOAT, false, 0, 0)
 
   gl.enableVertexAttribArray(trianglePositionAttributeLocation);
 
@@ -161,13 +200,13 @@ function setupTriangleProgram() {
   gl.uniform3f(backgroundColorLocation, backgroundColorRgb.r, backgroundColorRgb.g, backgroundColorRgb.b);
 }
 
-function main() {
+async function main() {
   setupDatGui();
   setupGl();
-  setupParticleProgram();
+  await setupParticleProgram();
 
   if (config.enableMotionBlur) {
-    setupTriangleProgram();
+    await setupTriangleProgram();
   }
 
   const stats = new Stats();
@@ -186,8 +225,6 @@ function main() {
 
   let canvasWidth = gl.canvas.width;
   let canvasHeight = gl.canvas.height;
-
-  requestAnimationFrame(animate);
 
   canvas.addEventListener('mousedown', function (evt) {
     isMouseDown = true;
@@ -287,34 +324,16 @@ function main() {
     }
   });
 
-  const particleColorRgb = hexToRgb(config.particleColor);
-  gl.clearColor(particleColorRgb.r, particleColorRgb.g, particleColorRgb.b, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  clearColors(config.particleColor);
 
-  const triangles = new Float32Array(
-      [
-        -1, -1,
-        -1, 1,
-        1, 1,
-        1, 1,
-        1, -1,
-        -1, -1
-      ]
-  );
+  requestAnimationFrame(animate);
 
   function animate() {
     stats.begin();
     let deltaTime = (Date.now() - startTime) / 1000;
 
     if (config.enableMotionBlur) {
-      gl.useProgram(triangleProgram);
-
-      gl.vertexAttribPointer(
-        trianglePositionAttributeLocation, 2, gl.FLOAT, false, 0, 0)
-
-      gl.bufferData(gl.ARRAY_BUFFER, triangles , gl.STATIC_DRAW);
-
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      drawTriangles();
 
       gl.useProgram(particleProgram);
     } else {
@@ -332,7 +351,7 @@ function main() {
     );
 
     if (config.enableMotionBlur) {
-      gl.vertexAttribPointer(particlePositionAttributeLocation, 2 /* size */, gl.FLOAT /* type */, false /* normalize */, 2 * Float32Array.BYTES_PER_ELEMENT /* stride */, 0 /* offset */);
+      gl.bindVertexArray(particlesVao);
     }
 
     gl.bufferData(gl.ARRAY_BUFFER, particlesCoordinates, gl.DYNAMIC_DRAW);

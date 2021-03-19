@@ -1,4 +1,4 @@
-export function createShader(gl, type, source) {
+export function createShader(/** @type {WebGL2RenderingContext} */ gl, type, source) {
   const shader = gl.createShader(type);
 
   gl.shaderSource(shader, source);
