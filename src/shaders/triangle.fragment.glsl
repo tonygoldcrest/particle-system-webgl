@@ -4,8 +4,8 @@ precision highp float;
 
 out vec4 outColor;
 
-uniform vec3 u_background;
+uniform vec3 uBackground;
 
 void main() {
-  outColor = vec4(u_background.xyz, .1);
+  outColor = vec4(uBackground.xyz, .1);
 }

@@ -1,9 +1,11 @@
 #version 300 es
 
-in vec4 a_position;
-uniform float point_size;
+in vec4 aPosition;
+uniform float uPointSize;
+out vec4 vParticlePosition;
 
 void main() {
-  gl_Position = a_position;
-  gl_PointSize = point_size;
+  gl_Position = aPosition;
+  gl_PointSize = uPointSize;
+  vParticlePosition = aPosition;
 }

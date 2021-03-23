@@ -1,0 +1,48 @@
+{
+  "extends": ["airbnb-base"],
+  "plugins": ["prettier"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true,
+    "mocha": true
+  },
+  "parserOptions": {
+      "sourceType": "module"
+  },
+  "ecmaFeatures": {
+    "arrowFunctions": true,
+    "blockBindings": true,
+    "classes": true,
+    "defaultParams": true,
+    "modules": true,
+    "spread": true,
+    "globalReturn": true
+  },
+  "rules": {
+    "no-console": "off",
+    "max-classes-per-file": "off",
+    "no-bitwise": "off",
+    "no-param-reassign": "off",
+    "consistent-return": "off",
+    "import/extensions": "off",
+    "comma-dangle": "off",
+    "no-plusplus": "off",
+    "radix": "off",
+    "no-tabs": "off",
+    "no-use-before-define": "off",
+    "no-mixed-spaces-and-tabs": "off",
+    "func-names": "off",
+    "prettier/prettier": [
+      "error",
+      { "singleQuote": true, "tabWidth": 2, "semi": true, "trailingComma": "es5", "printWidth": 80, "useTabs": true }
+    ],
+    "indent": "off"
+  },
+  "globals": {
+    "Module": "readonly",
+    "dat": "readonly",
+    "Stats": "readonly",
+    "ccallArrays": "readonly"
+  }
+}

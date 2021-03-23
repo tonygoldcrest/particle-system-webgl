@@ -3,6 +3,7 @@
 #include <iostream>
 #include <emscripten/emscripten.h>
 #include <cmath>
+#include <thread>
 
 using namespace std;
 
@@ -79,7 +80,7 @@ class Particle {
     }
 
     void move() {
-      position->add(velocity->multiply(1/friction));
+      position->add(velocity->multiply(1 / friction));
     }
 };
 
@@ -259,67 +260,84 @@ extern "C" {
     delete center;
   }
 
-  EMSCRIPTEN_KEEPALIVE float* calcCoordinates (float canvasWidth, float canvasHeight, float particleSize, int isForceApplied, float forceCenterX, float forceCenterY, float deltaTime, int bounceX, int bounceY, int squared) {
+  EMSCRIPTEN_KEEPALIVE void calcPartCoordinates(float canvasWidth, float canvasHeight, float particleSize, int isForceApplied, float forceCenterX, float forceCenterY, float deltaTime, int bounceX, int bounceY, int squared, int from, int to) {
     float normX, normY, length;
-    float particleX, particleY;
     float forceMagnitude;
-    Particle * particle;
     int leftBound = 0;
     int rightBound = canvasWidth;
-
 
     if (squared == 1) {
       leftBound = (canvasWidth - canvasHeight) / 2;
       rightBound = canvasWidth - (canvasWidth - canvasHeight) / 2;
     }
 
-    for (int i = 0; i < particlesNum; i++) {
-      particle = particles[i];
-      particleX = particle->position->x;
-      particleY = particle->position->y;
+    for (int i = from; i < to; i++) {
+      if (particles[i]->velocity->x == 0 && particles[i]->velocity->y == 0) {
+        continue;
+      }
 
-      normX = -1.0 + 2.0 * particleX / canvasWidth;
-      normY = -1.0 + 2.0 * particleY / canvasHeight;
+      normX = -1.0 + 2.0 * particles[i]->position->x / canvasWidth;
+      normY = -1.0 + 2.0 * particles[i]->position->y / canvasHeight;
 
       particlesCoordinates[2*i] = normX;
       particlesCoordinates[2*i + 1] = normY;
 
       if (bounceX == 1) {
-        if (((particleX - particleSize / 2) < leftBound && particle->velocity->x < 0) || ((particleX + particleSize / 2) > rightBound && particle->velocity->x > 0)) {
-          particle->velocity->x = -particle->velocity->x;
+        if (((particles[i]->position->x - particleSize / 2) < leftBound && particles[i]->velocity->x < 0) || ((particles[i]->position->x + particleSize / 2) > rightBound && particles[i]->velocity->x > 0)) {
+          particles[i]->velocity->x = -particles[i]->velocity->x;
         }
       }
 
       if (bounceY == 1) {
-        if (((particleY - particleSize / 2) < 0 && particle->velocity->y < 0) || ((particleY + particleSize / 2) > canvasHeight && particle->velocity->y > 0)) {
-          particle->velocity->y = -particle->velocity->y;
+        if (((particles[i]->position->y - particleSize / 2) < 0 && particles[i]->velocity->y < 0) || ((particles[i]->position->y + particleSize / 2) > canvasHeight && particles[i]->velocity->y > 0)) {
+          particles[i]->velocity->y = -particles[i]->velocity->y;
         }
       }
 
       if (isForceApplied == 1) {
-        length = sqrt(pow(forceCenterX - particleX, 2) + pow(forceCenterY - particleY, 2));
+        length = sqrt(pow(forceCenterX - particles[i]->position->x, 2) + pow(forceCenterY - particles[i]->position->y, 2));
 
         forceMagnitude = 0.07 * (1 / length);
 
-        particle->addForce(
-          forceMagnitude * (forceCenterX - particleX),
-          forceMagnitude * (forceCenterY - particleY)
+        particles[i]->addForce(
+          forceMagnitude * (forceCenterX - particles[i]->position->x),
+          forceMagnitude * (forceCenterY - particles[i]->position->y)
         );
       }
 
       for (int j = 0; j < heavyParticlesNum; j++) {
-        length = sqrt(pow(heavyParticles[j]->x - particleX, 2) + pow(heavyParticles[j]->y - particleY, 2));
+        length = sqrt(pow(heavyParticles[j]->x - particles[i]->position->x, 2) + pow(heavyParticles[j]->y - particles[i]->position->y, 2));
 
         forceMagnitude = 0.07 * (1 / length);
 
-        particle->addForce(
-          forceMagnitude * (heavyParticles[j]->x - particleX),
-          forceMagnitude * (heavyParticles[j]->y - particleY)
+        particles[i]->addForce(
+          forceMagnitude * (heavyParticles[j]->x - particles[i]->position->x),
+          forceMagnitude * (heavyParticles[j]->y - particles[i]->position->y)
         );
       }
 
-      particle->move();
+      particles[i]->move();
     };
+  };
+
+  int NUM_OF_THREADS = 5;
+  thread ** threads = new thread*[NUM_OF_THREADS - 1];
+
+  EMSCRIPTEN_KEEPALIVE float* calcCoordinates (float canvasWidth, float canvasHeight, float particleSize, int isForceApplied, float forceCenterX, float forceCenterY, float deltaTime, int bounceX, int bounceY, int squared) {
+
+    for (int i = 0; i < NUM_OF_THREADS - 1; i++) {
+      threads[i] = new thread(calcPartCoordinates, canvasWidth, canvasHeight, particleSize, isForceApplied, forceCenterX, forceCenterY, deltaTime, bounceX, bounceY, squared, i * particlesNum / NUM_OF_THREADS, (i + 1) * particlesNum / NUM_OF_THREADS);
+    }
+
+    calcPartCoordinates(canvasWidth, canvasHeight, particleSize, isForceApplied, forceCenterX, forceCenterY, deltaTime, bounceX, bounceY, squared, (NUM_OF_THREADS - 1) * particlesNum / NUM_OF_THREADS, particlesNum);
+
+    for (int i = 0; i < NUM_OF_THREADS - 1; i++) {
+      threads[i]->join();
+    }
+
+    for (int i = 0; i < NUM_OF_THREADS - 1; i++) {
+      delete threads[i];
+    }
 
     auto arrayPtr = &particlesCoordinates[0];
     return arrayPtr;

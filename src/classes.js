@@ -1,72 +1,70 @@
 export class Vector2 {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+	}
 
-  getLength() {
-    return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
-  }
+	getLength() {
+		return Math.sqrt(this.x ** 2 + this.y ** 2);
+	}
 
-  add(vec2) {
-    this.x += vec2.x;
-    this.y += vec2.y;
+	add(vec2) {
+		this.x += vec2.x;
+		this.y += vec2.y;
 
-    return this;
-  }
+		return this;
+	}
 
-  multiply(value) {
-    this.x *= value;
-    this.y *= value;
+	multiply(value) {
+		this.x *= value;
+		this.y *= value;
 
-    return this;
-  }
+		return this;
+	}
 
-  subtract(vec2) {
-    this.x -= vec2.x;
-    this.y -= vec2.y;
+	subtract(vec2) {
+		this.x -= vec2.x;
+		this.y -= vec2.y;
 
-    return this;
-  }
+		return this;
+	}
 
-  normalize(vec2) {
-    var x = this.x / this.getLength(),
-      y = this.y / this.getLength();
+	normalize() {
+		const x = this.x / this.getLength();
+		const y = this.y / this.getLength();
 
-    this.x = x;
-    this.y = y;
+		this.x = x;
+		this.y = y;
 
-    return this;
-  }
+		return this;
+	}
 
-  static subtract(vec1, vec2) {
-    return (new Vector2(vec1.x, vec1.y)).subtract(vec2);
-  }
+	static subtract(vec1, vec2) {
+		return new Vector2(vec1.x, vec1.y).subtract(vec2);
+	}
 
-  static normalize(vec) {
-    var x = vec.x / vec.getLength(),
-      y = vec.y / vec.getLength();
+	static normalize(vec) {
+		const x = vec.x / vec.getLength();
+		const y = vec.y / vec.getLength();
 
-    return new Vector2(x, y);
-  }
-
+		return new Vector2(x, y);
+	}
 }
 
 export class Particle {
-  constructor(position) {
-    this.position = position;
-    this.velocity = new Vector2(0, 0);
-    this.prevPoisitons = [];
-    this.friction = 1.001;
-  }
+	constructor(position) {
+		this.position = position;
+		this.velocity = new Vector2(0, 0);
+		this.prevPoisitons = [];
+		this.friction = 1.001;
+	}
 
-  addForce(x, y) {
-    this.velocity.x += x;
-    this.velocity.y += y;
-  }
+	addForce(x, y) {
+		this.velocity.x += x;
+		this.velocity.y += y;
+	}
 
-  move() {
-    this.position.add(this.velocity.multiply(1/this.friction));
-  }
+	move() {
+		this.position.add(this.velocity.multiply(1 / this.friction));
+	}
 }
-
