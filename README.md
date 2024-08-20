@@ -15,7 +15,7 @@ Check out the live demo [here](https://peancored.github.io/particle-system-webgl
 3. As particles hit the walls, press and hold `c` to start dragging them towards the middle of the screen
 4. This should already create a beautiful imagery. Try playing with `x` and `c` more and different shapes will start emerging
 5. Try pressing `r` followed by a number from 1 to 9 to create invisible "gravitational" enities that the particles will be attracted to
-6. Follow this by pressing `x` repeatedly with some interval to combat the gravitational force, this should create even cooler patterns
+6. Follow this by pressing `x` repeatedly with some intervals to combat the gravitational force, this should create even cooler patterns
 7. You can find more hotkeys in the cheatsheet section of the demo
 8. You can also configure various parameters using the config menu in the top right corner and take screenshots or load a background image using the buttons in the bottom right.
 
