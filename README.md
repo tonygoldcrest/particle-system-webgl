@@ -7,7 +7,7 @@ A particle system capable of creating beautiful patterns due to the usage of sym
 ## Demo
 Check out the live demo [here](https://peancored.github.io/particle-system-webgl/)
 
-WARNING: The link might not work when opened for the first time, simply reload the page and it should load correctly.
+**WARNING**: The link might not work when opened for the first time, simply reload the page and it should load correctly.
 
 ## How to use
 1. Start with pressing `r` to generate a filled circle of particles
